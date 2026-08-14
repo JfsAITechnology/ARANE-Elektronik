@@ -127,7 +127,7 @@
 
   const originalDeleteProduct = window.deleteProduct;
   window.deleteProduct = async function(id) {
-    const p = (window.products || []).find(x => x.id === id);
+    const p = products.find(x => x.id === id);
     if (!p || !confirm('Hapus barang ini?')) return;
     if (p.image_path) {
       try { await supabaseClient.storage.from(BUCKET).remove([p.image_path]); } catch(e) { console.warn(e); }
@@ -196,8 +196,6 @@
   };
 
   document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      ensurePhotoFields();
-    }, 0);
+    setTimeout(() => ensurePhotoFields(), 0);
   });
 })();
