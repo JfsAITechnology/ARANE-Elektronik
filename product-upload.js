@@ -1,3 +1,27 @@
+/* JFS AI — load subscription guard before tenant features */
+(function loadSubscriptionGuard() {
+  window.JFS_SUPABASE_URL = 'https://evtkeyfjgqwarsmlzrkh.supabase.co';
+  window.JFS_SUPABASE_KEY = 'sb_publishable_7lGio_RVVgkVASYYyBHQIg_GvL-8ELD';
+
+  const script = document.createElement('script');
+  script.src = 'subscription-guard.js';
+  script.onload = function () {
+    if (typeof window.JFS_CHECK_SUBSCRIPTION === 'function') {
+      window.JFS_CHECK_SUBSCRIPTION().then(function (active) {
+        if (active) {
+          window.dispatchEvent(new CustomEvent('jfs:subscription-active'));
+        }
+      }).catch(function (err) {
+        console.error('[JFS Subscription Guard]', err);
+      });
+    }
+  };
+  script.onerror = function () {
+    console.error('[JFS Subscription Guard] Gagal memuat guard.');
+  };
+  document.head.appendChild(script);
+})();
+
 /* ARANE Elektronik - Supabase product photo integration */
 (() => {
   const TENANT_ID = '661ae9a0-06c6-457a-a51f-a2c15f85ae89';
@@ -6,6 +30,7 @@
   let editingProduct = null;
   let originalOpenModal = null;
   let originalDeleteProduct = null;
+  let integrationInstalled = false;
 
   const $ = id => document.getElementById(id);
 
@@ -124,11 +149,13 @@
   }
 
   function installIntegration() {
+    if (integrationInstalled) return true;
     if (typeof window.openModal !== 'function' || typeof window.closeModal !== 'function') {
       console.warn('ARANE upload: fungsi modal belum siap.');
-      return;
+      return false;
     }
 
+    integrationInstalled = true;
     originalOpenModal = window.openModal;
     originalDeleteProduct = window.deleteProduct;
 
@@ -208,7 +235,25 @@
         if (oldBtn) { oldBtn.disabled = false; oldBtn.textContent = 'Simpan Barang'; }
       }
     };
+    return true;
   }
 
-  document.addEventListener('DOMContentLoaded', installIntegration);
+  function waitForTenantFunctions(attempt = 0) {
+    if (installIntegration()) return;
+    if (attempt >= 50) {
+      console.warn('ARANE upload: fungsi tenant belum siap setelah menunggu.');
+      return;
+    }
+    setTimeout(() => waitForTenantFunctions(attempt + 1), 100);
+  }
+
+  function startWhenSubscriptionIsActive() {
+    waitForTenantFunctions();
+  }
+
+  window.addEventListener('jfs:subscription-active', startWhenSubscriptionIsActive);
+
+  if (window.ARANE_SUBSCRIPTION && window.ARANE_SUBSCRIPTION.status === 'active') {
+    startWhenSubscriptionIsActive();
+  }
 })();
