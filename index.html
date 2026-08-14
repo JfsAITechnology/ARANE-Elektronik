@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ARANE Elektronik — JFS AI Tenant</title>
-<link rel="icon" href="assets/arane-elektronik.png">
+<link rel="icon" href="arane-elektronik.png">
 <style>
 :root{--navy:#071426;--blue:#087cf0;--cyan:#12bce9;--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#68758b;--line:#e2e8f0;--green:#16a34a;--yellow:#d97706;--red:#dc2626;--shadow:0 5px 18px rgba(16,35,58,.07)}
 [data-theme="dark"]{--bg:#07101f;--card:#0d1a2e;--text:#eef5ff;--muted:#9aabc2;--line:#20304a;--shadow:0 8px 25px rgba(0,0,0,.25)}
@@ -15,7 +15,7 @@
 <body>
 <div class="app">
 <aside class="side">
-  <div class="brand"><img src="assets/arane-elektronik.png" alt="ARANE Elektronik"><div><b>ARANE Elektronik</b><small>Powered by JFS AI Technology</small></div></div>
+  <div class="brand"><img src="arane-elektronik.png" alt="ARANE Elektronik"><div><b>ARANE Elektronik</b><small>Powered by JFS AI Technology</small></div></div>
   <div class="nav">
     <button class="active" data-page="dashboard">▦ <span>Dashboard</span></button>
     <button data-page="inventory">▤ <span>Stok Barang</span></button>
@@ -34,7 +34,7 @@
 
   <section id="dashboard" class="page active">
     <div class="grid"><div class="card kpi"><div class="label">Percakapan</div><div class="num" id="kpiChat">42</div></div><div class="card kpi"><div class="label">Leads</div><div class="num">8</div></div><div class="card kpi"><div class="label">Order</div><div class="num">5</div></div><div class="card kpi"><div class="label">Produk tersedia</div><div class="num" id="kpiStock">0</div></div></div>
-    <div class="section grid" style="grid-template-columns:1.35fr 1fr"><div class="card"><h2>Status Sistem</h2><div class="status-row"><span>✦ AI Assistant</span><b style="color:var(--green)">Online</b></div><div class="status-row"><span>◉ WhatsApp</span><b style="color:var(--green)">Kontak siap</b></div><div class="status-row"><span>▧ Knowledge Base</span><b style="color:var(--green)">Aktif</b></div><div class="status-row"><span>◷ License</span><b style="color:var(--yellow)">Trial</b></div><div class="actions" style="margin-top:13px"><button class="btn primary" onclick="go('ai')">Buka AI Assistant</button><button class="btn whatsapp" onclick="openWhatsApp()">Chat WhatsApp</button></div></div><div class="card"><h2>ARANE Elektronik</h2><img src="assets/arane-elektronik.png" alt="Logo ARANE Elektronik" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px"><div class="notice">Foto katalog yang berasal dari internet adalah <b>foto referensi model/type</b>, bukan foto kondisi unit aktual.</div></div></div>
+    <div class="section grid" style="grid-template-columns:1.35fr 1fr"><div class="card"><h2>Status Sistem</h2><div class="status-row"><span>✦ AI Assistant</span><b style="color:var(--green)">Online</b></div><div class="status-row"><span>◉ WhatsApp</span><b style="color:var(--green)">Kontak siap</b></div><div class="status-row"><span>▧ Knowledge Base</span><b style="color:var(--green)">Aktif</b></div><div class="status-row"><span>◷ License</span><b style="color:var(--yellow)">Trial</b></div><div class="actions" style="margin-top:13px"><button class="btn primary" onclick="go('ai')">Buka AI Assistant</button><button class="btn whatsapp" onclick="openWhatsApp()">Chat WhatsApp</button></div></div><div class="card"><h2>ARANE Elektronik</h2><img src="arane-elektronik.png" alt="Logo ARANE Elektronik" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px"><div class="notice">Foto katalog yang berasal dari internet adalah <b>foto referensi model/type</b>, bukan foto kondisi unit aktual.</div></div></div>
   </section>
 
   <section id="inventory" class="page"><div class="card"><div class="actions" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Stok Barang</h2><button class="btn primary" onclick="openModal()">+ Tambah Barang</button></div><div class="toolbar"><input id="search" placeholder="Cari merek, model, SKU..."><select id="brandFilter"><option value="">Semua merek</option></select><select id="gradeFilter"><option value="">Semua grade</option><option>A</option><option>B</option><option>C</option></select><select id="statusFilter"><option value="">Semua status</option><option>Normal / Tested</option><option>Minor Issue</option><option>Perlu Perbaikan</option><option>Tidak Berfungsi</option><option>Belum Dites</option></select></div><div class="tablewrap"><table class="table"><thead><tr><th>Foto</th><th>Produk</th><th>Merek</th><th>Model/Tipe</th><th>Grade</th><th>Fungsi</th><th>Qty</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="tbody"></tbody></table></div></div></section>
