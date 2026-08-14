@@ -1,3 +1,21 @@
+/* JFS AI — load subscription guard before tenant features */
+(function loadSubscriptionGuard() {
+  window.JFS_SUPABASE_URL = 'https://evtkeyfjgqwarsmlzrkh.supabase.co';
+  window.JFS_SUPABASE_KEY = 'sb_publishable_7lGio_RVVgkVASYYyBHQIg_GvL-8ELD';
+  const script = document.createElement('script');
+  script.src = 'subscription-guard.js';
+  script.defer = true;
+  script.onload = function () {
+    if (typeof window.JFS_CHECK_SUBSCRIPTION === 'function') {
+      window.JFS_CHECK_SUBSCRIPTION();
+    }
+  };
+  script.onerror = function () {
+    console.error('[JFS Subscription Guard] Gagal memuat guard.');
+  };
+  document.head.appendChild(script);
+})();
+
 /* ARANE Elektronik - Supabase product photo integration */
 (() => {
   const TENANT_ID = '661ae9a0-06c6-457a-a51f-a2c15f85ae89';
