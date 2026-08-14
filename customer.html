@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARANE Elektronik — Katalog Customer</title>
+<link rel="icon" href="arane-elektronik.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{margin:0;font-family:Inter,system-ui,Arial;background:#f4f7fb;color:#172033}.wrap{max-width:1100px;margin:auto;padding:20px}.head{display:flex;align-items:center;gap:14px;margin-bottom:20px}.head img{width:64px;height:64px;object-fit:contain;border-radius:12px;background:#fff}.muted{color:#68758b;font-size:13px}.search{width:100%;padding:12px;border:1px solid #dbe3ee;border-radius:10px;box-sizing:border-box;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden}.pic{width:100%;height:190px;object-fit:contain;background:#f5f8fc}.body{padding:14px}.price{font-size:18px;font-weight:750;margin:8px 0}.stock{font-size:12px;font-weight:700}.ok{color:#16a34a}.out{color:#dc2626}.btn{display:inline-block;margin-top:12px;padding:10px 13px;border-radius:9px;background:#16a34a;color:#fff;text-decoration:none;font-weight:700;font-size:13px}@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><div class="wrap">
+<div class="head"><img src="arane-elektronik.png"><div><h1 style="margin:0;font-size:24px">ARANE Elektronik</h1><div class="muted">Katalog Produk • Powered by JFS AI Technology</div></div></div>
+<input id="search" class="search" placeholder="Cari produk, merek, model, SKU...">
+<div id="catalog" class="grid"></div>
+</div>
+<script>
+const URL='https://evtkeyfjgqwarsmlzrkh.supabase.co';
+const KEY='sb_publishable_7lGio_RVVgkVASYYyBHQIg_GvL-8ELD';
+const sb=window.supabase.createClient(URL,KEY);
+const TENANT='661ae9a0-06c6-457a-a51f-a2c15f85ae89';
+const WA='6282143454936';
+let products=[];
+function rupiah(v){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v||0)}
+function render(){const q=document.getElementById('search').value.toLowerCase();const list=products.filter(p=>(`${p.name||''} ${p.brand||''} ${p.model||''} ${p.sku||''}`).toLowerCase().includes(q));document.getElementById('catalog').innerHTML=list.length?list.map(p=>`<article class="card"><img class="pic" src="${p.image_url||'arane-elektronik.png'}" onerror="this.src='arane-elektronik.png'"><div class="body"><b>${p.name||'-'}</b><div class="muted">${p.brand||''} ${p.model||''}</div><div class="price">${rupiah(p.price)}</div><div class="stock ${p.is_active===false?'out':'ok'}">${p.is_active===false?'Tidak tersedia':'Tersedia'}</div><a class="btn" target="_blank" href="https://wa.me/${WA}?text=${encodeURIComponent('Halo ARANE Elektronik, saya tertarik dengan produk '+(p.name||'')+' '+(p.model||''))}">Chat WhatsApp</a></div></article>`).join(''):'<div class="muted">Belum ada produk yang tersedia.</div>'}
+async function load(){const {data,error}=await sb.from('products').select('id,name,sku,category,brand,model,description,price,is_active,image_url').eq('tenant_id',TENANT).order('name');if(error){console.error(error);document.getElementById('catalog').innerHTML='<div class="muted">Katalog sedang tidak tersedia.</div>';return}products=data||[];render()}
+document.getElementById('search').addEventListener('input',render);load();
+</script></body></html>
