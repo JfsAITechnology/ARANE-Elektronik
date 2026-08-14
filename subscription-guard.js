@@ -27,7 +27,7 @@
     sub.textContent = subscription && subscription.end_date ? 'Masa akses berakhir pada ' + subscription.end_date + '.' : 'Silakan hubungi JFS AI Technology untuk mengaktifkan kembali layanan.';
     sub.style.cssText = 'font-size:13px;color:#68758b;margin:0 0 22px';
     const btn = document.createElement('a');
-    btn.href = 'https://wa.me/6280000000000';
+    btn.href = 'https://wa.me/6282230010172';
     btn.target = '_blank';
     btn.rel = 'noopener';
     btn.textContent = 'Hubungi JFS AI Technology';
