@@ -4,6 +4,8 @@
   const BUCKET = 'product-images';
   let selectedFile = null;
   let editingProduct = null;
+  let originalOpenModal = null;
+  let originalDeleteProduct = null;
 
   const $ = id => document.getElementById(id);
 
@@ -36,8 +38,14 @@
     fileInput.addEventListener('change', () => {
       const file = fileInput.files?.[0];
       if (!file) return;
-      if (!['image/jpeg','image/png','image/webp'].includes(file.type)) return alert('Gunakan JPG, PNG, atau WEBP.');
-      if (file.size > 5 * 1024 * 1024) return alert('Ukuran foto maksimal 5 MB.');
+      if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+        fileInput.value = '';
+        return alert('Gunakan JPG, PNG, atau WEBP.');
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        fileInput.value = '';
+        return alert('Ukuran foto maksimal 5 MB.');
+      }
       selectedFile = file;
       $('imagePreview').src = URL.createObjectURL(file);
       $('imagePreviewBox').style.display = 'block';
@@ -115,87 +123,92 @@
     return { url: data.publicUrl, path: filePath };
   }
 
-  const originalOpenModal = window.openModal;
-  window.openModal = function(p = null) {
-    editingProduct = p;
-    selectedFile = null;
-    originalOpenModal(p);
-    ensurePhotoFields();
-    showPhoto(p?.image || '', p?.image_path || '');
-    $('fImageFile').value = '';
-  };
-
-  const originalDeleteProduct = window.deleteProduct;
-  window.deleteProduct = async function(id) {
-    const p = products.find(x => x.id === id);
-    if (!p || !confirm('Hapus barang ini?')) return;
-    if (p.image_path) {
-      try { await supabaseClient.storage.from(BUCKET).remove([p.image_path]); } catch(e) { console.warn(e); }
+  function installIntegration() {
+    if (typeof window.openModal !== 'function' || typeof window.closeModal !== 'function') {
+      console.warn('ARANE upload: fungsi modal belum siap.');
+      return;
     }
-    const sku = p.sku;
-    try {
-      await ensureAnonymousSession();
-      if (sku) await supabaseClient.from('products').delete().eq('tenant_id', TENANT_ID).eq('sku', sku);
-    } catch(e) { console.warn('Supabase delete:', e); }
-    originalDeleteProduct(id);
-  };
 
-  window.saveProduct = async function() {
-    const oldBtn = document.querySelector('#modal .modalfoot .btn.primary');
-    if (oldBtn) { oldBtn.disabled = true; oldBtn.textContent = 'Menyimpan...'; }
-    try {
-      const p = {
-        id: editingProduct?.id || Date.now(),
-        cat: $('fCat').value,
-        brand: $('fBrand').value,
-        name: $('fName').value || 'Produk Elektronik',
-        model: $('fModel').value,
-        sku: $('fSku').value || ('ARANE-' + Date.now()),
-        grade: $('fGrade').value,
-        func: $('fFunc').value,
-        qty: Math.max(0, Number($('fQty').value || 0)),
-        price: Math.max(0, Number($('fPrice').value || 0)),
-        warranty: $('fWarranty').value,
-        defectType: $('fDefectType').value,
-        defect: $('fDefect').value,
-        image: $('fImage').value || '',
-        image_path: $('fImagePath').value || ''
+    originalOpenModal = window.openModal;
+    originalDeleteProduct = window.deleteProduct;
+
+    window.openModal = function(p = null) {
+      editingProduct = p;
+      selectedFile = null;
+      originalOpenModal(p);
+      ensurePhotoFields();
+      showPhoto(p?.image || '', p?.image_path || '');
+      $('fImageFile').value = '';
+    };
+
+    if (typeof originalDeleteProduct === 'function') {
+      window.deleteProduct = async function(id) {
+        const p = Array.isArray(window.products) ? window.products.find(x => x.id === id) : null;
+        if (p && p.image_path) {
+          try {
+            await ensureAnonymousSession();
+            await supabaseClient.storage.from(BUCKET).remove([p.image_path]);
+          } catch(e) { console.warn('Supabase image delete:', e); }
+        }
+        return originalDeleteProduct(id);
       };
-
-      await ensureAnonymousSession();
-      let dbProduct = await upsertSupabaseProduct(p);
-      if (selectedFile) {
-        const uploaded = await uploadImage(dbProduct.id);
-        p.image = uploaded.url;
-        p.image_path = uploaded.path;
-        const { error } = await supabaseClient.from('products').update({ image_url: p.image, image_path: p.image_path, updated_at: new Date().toISOString() }).eq('id', dbProduct.id);
-        if (error) throw error;
-      }
-
-      const { error: invError } = await supabaseClient.from('inventory').upsert({
-        tenant_id: TENANT_ID,
-        product_id: dbProduct.id,
-        quantity: p.qty,
-        condition: p.defectType || 'Baik',
-        grade: p.grade,
-        stock_status: p.qty > 0 ? 'Tersedia' : 'Habis',
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'product_id' });
-      if (invError) throw invError;
-
-      if (editingProduct) products = products.map(x => x.id === editingProduct.id ? p : x);
-      else products.push(p);
-      save(); render(); closeModal();
-      alert('✅ Barang dan foto berhasil disimpan ke Supabase.');
-    } catch (e) {
-      console.error(e);
-      alert('Gagal menyimpan: ' + (e.message || e));
-    } finally {
-      if (oldBtn) { oldBtn.disabled = false; oldBtn.textContent = 'Simpan Barang'; }
     }
-  };
 
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => ensurePhotoFields(), 0);
-  });
+    window.saveProduct = async function() {
+      const oldBtn = document.querySelector('#modal .modalfoot .btn.primary');
+      if (oldBtn) { oldBtn.disabled = true; oldBtn.textContent = 'Menyimpan...'; }
+      try {
+        const p = {
+          id: editingProduct?.id || Date.now(),
+          cat: $('fCat').value,
+          brand: $('fBrand').value,
+          name: $('fName').value || 'Produk Elektronik',
+          model: $('fModel').value,
+          sku: $('fSku').value || ('ARANE-' + Date.now()),
+          grade: $('fGrade').value,
+          func: $('fFunc').value,
+          qty: Math.max(0, Number($('fQty').value || 0)),
+          price: Math.max(0, Number($('fPrice').value || 0)),
+          warranty: $('fWarranty').value,
+          defectType: $('fDefectType').value,
+          defect: $('fDefect').value,
+          image: $('fImage').value || '',
+          image_path: $('fImagePath').value || ''
+        };
+
+        await ensureAnonymousSession();
+        let dbProduct = await upsertSupabaseProduct(p);
+        if (selectedFile) {
+          const uploaded = await uploadImage(dbProduct.id);
+          p.image = uploaded.url;
+          p.image_path = uploaded.path;
+          const { error } = await supabaseClient.from('products').update({ image_url: p.image, image_path: p.image_path, updated_at: new Date().toISOString() }).eq('id', dbProduct.id);
+          if (error) throw error;
+        }
+
+        const { error: invError } = await supabaseClient.from('inventory').upsert({
+          tenant_id: TENANT_ID,
+          product_id: dbProduct.id,
+          quantity: p.qty,
+          condition: p.defectType || 'Baik',
+          grade: p.grade,
+          stock_status: p.qty > 0 ? 'Tersedia' : 'Habis',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'product_id' });
+        if (invError) throw invError;
+
+        if (editingProduct) products = products.map(x => x.id === editingProduct.id ? p : x);
+        else products.push(p);
+        save(); render(); closeModal();
+        alert('✅ Barang dan foto berhasil disimpan ke Supabase.');
+      } catch (e) {
+        console.error(e);
+        alert('Gagal menyimpan: ' + (e.message || e));
+      } finally {
+        if (oldBtn) { oldBtn.disabled = false; oldBtn.textContent = 'Simpan Barang'; }
+      }
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', installIntegration);
 })();
