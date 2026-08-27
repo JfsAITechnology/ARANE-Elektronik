@@ -14,36 +14,49 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f7f
 .input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #dbe3ee;border-radius:9px;margin-top:6px}
 .btn{width:100%;margin-top:15px;padding:12px;border:0;border-radius:9px;background:#087cf0;color:#fff;font-weight:700;cursor:pointer}
 .btn:disabled{opacity:.65;cursor:wait}
-.err{color:#dc2626;font-size:13px;margin-top:10px}
-.link{display:block;text-align:center;margin-top:14px;color:#087cf0;text-decoration:none;font-size:13px}
+.err{color:#dc2626;font-size:13px;margin-top:10px;white-space:pre-wrap}
+.ok{color:#067647;font-size:13px;margin-top:10px;white-space:pre-wrap}
+.link{display:block;text-align:center;margin-top:14px;color:#087cf0;text-decoration:none;font-size:13px;cursor:pointer;background:none;border:0;width:100%}
+.hidden{display:none}
 </style>
 </head>
 <body>
 <div class="box">
   <img class="logo" src="arane-elektronik.png" alt="ARANE Elektronik">
   <h2 style="text-align:center;margin:0">ARANE Elektronik</h2>
-  <p class="muted" style="text-align:center">Login Pemilik / Tenant</p>
+  <p id="subtitle" class="muted" style="text-align:center">Login Pemilik / Tenant</p>
 
   <form id="form">
     <label for="email">Email</label>
     <input id="email" class="input" type="email" autocomplete="email" required>
-
     <label for="password" style="display:block;margin-top:12px">Password</label>
     <input id="password" class="input" type="password" autocomplete="current-password" required>
-
     <button id="loginBtn" class="btn" type="submit">Masuk ke Dashboard</button>
+    <button id="forgotLink" type="button" class="link">Lupa password?</button>
     <div id="err" class="err" role="alert"></div>
+  </form>
+
+  <form id="forgotForm" class="hidden">
+    <p class="muted" style="margin-top:0">Masukkan email akun Anda. Kami akan mengirim link untuk mengatur ulang password.</p>
+    <label for="forgotEmail">Email</label>
+    <input id="forgotEmail" class="input" type="email" autocomplete="email" required>
+    <button id="forgotBtn" class="btn" type="submit">Kirim Link Reset</button>
+    <button id="backToLogin" type="button" class="link">← Kembali ke login</button>
+    <div id="forgotMsg" class="err" role="alert"></div>
   </form>
 
   <a class="link" href="customer.html">Lihat katalog customer →</a>
 </div>
-
 <script>
+// Storage key WAJIB sama dengan index.html (panel JFS AI Admin) supaya sesi
+// login di halaman ini tetap dikenali saat diarahkan ke index.html.
+const AUTH_STORAGE_KEY = 'jfs-ai-admin-auth';
+
 const sb = window.supabase.createClient(
   'https://evtkeyfjgqwarsmlzrkh.supabase.co',
-  'sb_publishable_7lGio_RVVgkVASYYyBHQIg_GvL-8ELD'
+  'sb_publishable_7lGio_RVVgkVASYYyBHQIg_GvL-8ELD',
+  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: AUTH_STORAGE_KEY } }
 );
-
 const TENANT = '661ae9a0-06c6-457a-a51f-a2c15f85ae89';
 
 const form = document.getElementById('form');
@@ -52,33 +65,90 @@ const password = document.getElementById('password');
 const err = document.getElementById('err');
 const loginBtn = document.getElementById('loginBtn');
 
+const forgotLink = document.getElementById('forgotLink');
+const backToLogin = document.getElementById('backToLogin');
+const forgotForm = document.getElementById('forgotForm');
+const forgotEmail = document.getElementById('forgotEmail');
+const forgotBtn = document.getElementById('forgotBtn');
+const forgotMsg = document.getElementById('forgotMsg');
+const subtitle = document.getElementById('subtitle');
+
+forgotLink.addEventListener('click', () => {
+  form.classList.add('hidden');
+  forgotForm.classList.remove('hidden');
+  forgotMsg.textContent = '';
+  forgotMsg.className = 'err';
+  subtitle.textContent = 'Reset Password';
+});
+backToLogin.addEventListener('click', () => {
+  forgotForm.classList.add('hidden');
+  form.classList.remove('hidden');
+  err.textContent = '';
+  subtitle.textContent = 'Login Pemilik / Tenant';
+});
+
+forgotForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  forgotMsg.textContent = '';
+  forgotMsg.className = 'err';
+  forgotBtn.disabled = true;
+  forgotBtn.textContent = 'Mengirim...';
+  try {
+    const redirectTo = new URL('reset-password.html', window.location.href).toString();
+    const { error } = await sb.auth.resetPasswordForEmail(forgotEmail.value.trim(), { redirectTo });
+    if (error) throw error;
+    forgotMsg.className = 'ok';
+    forgotMsg.textContent = 'Jika email terdaftar, link reset password sudah dikirim. Silakan cek inbox (dan folder spam).';
+  } catch (error) {
+    console.error(error);
+    forgotMsg.className = 'err';
+    forgotMsg.textContent = error.message || 'Gagal mengirim link reset password.';
+  } finally {
+    forgotBtn.disabled = false;
+    forgotBtn.textContent = 'Kirim Link Reset';
+  }
+});
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   err.textContent = '';
   loginBtn.disabled = true;
   loginBtn.textContent = 'Memeriksa...';
-
   try {
     const { data, error } = await sb.auth.signInWithPassword({
       email: email.value.trim(),
       password: password.value
     });
-
     if (error) throw error;
     if (!data.user) throw new Error('User login tidak ditemukan.');
 
-    // Verifikasi akses tenant menggunakan SECURITY DEFINER di Supabase.
+    // 1) Super Admin JFS AI (tabel jfs_admins) -> langsung diizinkan masuk,
+    //    tanpa perlu jadi pemilik/tenant khusus ARANE.
+    const { data: adminRow, error: adminError } = await sb
+      .from('jfs_admins')
+      .select('user_id')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+    if (adminError) {
+      console.error('Admin check error:', adminError);
+      // Jangan langsung gagalkan login hanya karena pemeriksaan admin error;
+      // lanjut ke pemeriksaan tenant owner di bawah.
+    }
+    if (adminRow) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // 2) Bukan super admin -> cek sebagai pemilik/tenant ARANE (SECURITY DEFINER RPC).
     const { data: isOwner, error: ownerError } = await sb.rpc(
       'is_tenant_owner',
       { p_tenant_id: TENANT }
     );
-
     if (ownerError) {
       console.error('Owner verification error:', ownerError);
       await sb.auth.signOut();
       throw new Error('Gagal memverifikasi akses Owner ARANE.');
     }
-
     if (!isOwner) {
       await sb.auth.signOut();
       throw new Error('Akun ini bukan pemilik/admin ARANE Elektronik.');
@@ -86,7 +156,6 @@ form.addEventListener('submit', async (e) => {
 
     // Owner terverifikasi.
     window.location.href = 'index.html';
-
   } catch (error) {
     console.error(error);
     err.textContent = error.message || 'Login gagal.';
