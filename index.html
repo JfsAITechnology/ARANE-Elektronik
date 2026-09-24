@@ -17,10 +17,7 @@
 const SUPABASE_URL = 'https://evtkeyfjgqwarsmlzrkh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_7lGio_RVVgkVASYYyBHQIg_GvL-8ELD';
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'jfs-ai-admin-auth'}});
 </script>
 <div class="app">
 <aside class="side">
